@@ -2,10 +2,6 @@
 using Rebus.Logging;
 using Topshelf;
 using log4net.Config;
-using System.Collections.Generic;
-using System.IO;
-using System.Xml.Serialization;
-using System.Reflection;
 
 namespace Rebus.HttpGateway
 {
@@ -21,7 +17,7 @@ namespace Rebus.HttpGateway
                 .Run(s =>
                 {
                     const string text = "Rebus Gateway Service";
-
+                    
                     s.UseLog4Net();
                     s.SetDescription("Rebus Gateway Service - Install named instance by adding '/instance:\"myInstance\"' when installing.");
                     s.SetDisplayName(text);
@@ -39,49 +35,23 @@ namespace Rebus.HttpGateway
 
         static GatewayService GetGatewayServiceInstance()
         {
-            //var cfg = RebusGatewayConfigurationSection.LookItUp();
-            //przy używaniu settingsów .netowych to konfig w katalogu binarki powinien być znaleziony automatycznie
-            //a póki sam wczytuje konfiguracje muszę podać pełną scieżkę
-            var path = Path.Combine(Assembly.GetExecutingAssembly().CodeBase, "Gateway.config");
-            var stream = File.OpenRead(path);
-            var cfg = (HttpGatewayConfiguration)new XmlSerializer(typeof(HttpGatewayConfiguration)).Deserialize(stream);
+            var cfg = RebusGatewayConfigurationSection.LookItUp();
 
-            var gateway = new GatewayService(cfg);
+            var gateway = new GatewayService();
 
-            //if (cfg.Inbounds != null)
-            //{
-            //    gateway.ListenUri = cfg.Inbound.ListenUri;
-            //    gateway.DestinationQueue = cfg.Inbound.DestinationQueue;
-            //}
+            if (cfg.Inbound != null)
+            {
+                gateway.ListenUri = cfg.Inbound.ListenUri;
+                gateway.DestinationQueue = cfg.Inbound.DestinationQueue;
+            }
 
-            //if (cfg.Outbounds != null)
-            //{
-            //    gateway.DestinationUri = cfg.Outbound.DestinationUri;
-            //    gateway.ListenQueue = cfg.Outbound.ListenQueue;
-            //}
-
-            //cfg.Outboud.ErrorQueue is not used in Mogen's code !!!
+            if (cfg.Outbound != null)
+            {
+                gateway.DestinationUri = cfg.Outbound.DestinationUri;
+                gateway.ListenQueue = cfg.Outbound.ListenQueue;
+            }
 
             return gateway;
         }
-    }
-
-    public class HttpGatewayConfiguration
-    {
-        public List<InboundConfiguration> Inbounds { get; set; }
-        public List<OutboundConfiguration> Outbounds { get; set; }
-    }
-
-    public class InboundConfiguration
-    {
-        public string ListenUri { get; set; }
-        public string DestinationQueue { get; set; }
-    }
-
-    public class OutboundConfiguration
-    {
-        public string ListenQueue { get; set; }
-        public string ErrorQueue { get; set; }
-        public string DestinationUri { get; set; }
     }
 }

@@ -2,8 +2,6 @@ using System;
 using Rebus.HttpGateway.Inbound;
 using Rebus.HttpGateway.Outbound;
 using Rebus.Logging;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Rebus.HttpGateway
 {
@@ -16,31 +14,14 @@ namespace Rebus.HttpGateway
             RebusLoggerFactory.Changed += f => log = f.GetCurrentClassLogger();
         }
 
+        InboundService inboundService;
+        OutboundService outboundService;
 
-        HttpGatewayConfiguration configuration;
-
-        List<InboundService> inboundServices;
-        List<OutboundService> outboundServices;
-
-        #region Old stuff left only to compile tests until they are changed
         public string ListenQueue { get; set; }
         public string DestinationUri { get; set; }
 
         public string DestinationQueue { get; set; }
         public string ListenUri { get; set; }
-        #endregion
-
-        public GatewayService() 
-        {
-            throw new Exception("This is fake temporary constructor allowing tests to compile until they are changed");
-        }
-
-        public GatewayService(HttpGatewayConfiguration configuration)
-        {
-            this.configuration = configuration;
-            this.inboundServices = new List<InboundService>();
-            this.outboundServices = new List<OutboundService>();
-        }
 
         public void Start()
         {
@@ -57,7 +38,7 @@ one-way mode. Available modes are described here:
 
             if (HasInboundConfiguration())
             {
-                InitHttpListeners();
+                InitHttpListener();
             }
             else
             {
@@ -66,7 +47,7 @@ one-way mode. Available modes are described here:
 
             if (HasOutboundConfiguration())
             {
-                InitQueueListeners();
+                InitQueueListener();
             }
             else
             {
@@ -78,20 +59,12 @@ one-way mode. Available modes are described here:
 
         bool HasOutboundConfiguration()
         {
-            //return !string.IsNullOrEmpty(ListenQueue);
-            //why DestinationUri is not chcecked??
-
-            return configuration.Outbounds != null && configuration.Outbounds.Count > 0
-                && configuration.Outbounds.All(x => !string.IsNullOrEmpty(x.ListenQueue) && !string.IsNullOrEmpty(x.DestinationUri));
+            return !string.IsNullOrEmpty(ListenQueue);
         }
 
         bool HasInboundConfiguration()
         {
-            //return !string.IsNullOrEmpty(ListenUri);
-            //why DestinationQueue is not checked??
-
-            return configuration.Inbounds != null && configuration.Outbounds.Count > 0
-                && configuration.Inbounds.All(x => !string.IsNullOrEmpty(x.DestinationQueue) && !string.IsNullOrEmpty(x.ListenUri));
+            return !string.IsNullOrEmpty(ListenUri);
         }
 
         string GenericHelpText()
@@ -116,47 +89,31 @@ The gateway can work in one of three modes: inbound, outbound, or full duplex.
 ";
         }
 
-        void InitQueueListeners()
+        void InitQueueListener()
         {
-            int i = 0;
-            foreach (var outbound in configuration.Outbounds)
-            {
-                i++;
-                log.Info(string.Format("Starting outbound service #{0}...", i));
-                var outboundService = new OutboundService(outbound.ListenQueue, outbound.DestinationUri);
-                outboundServices.Add(outboundService);
-                outboundService.Start();
-            }
+            log.Info("Starting outbound service...");
+            outboundService = new OutboundService(ListenQueue, DestinationUri);
+            outboundService.Start();
         }
 
-        void InitHttpListeners()
+        void InitHttpListener()
         {
-            int i = 0;
-            foreach (var inbound in configuration.Inbounds)
-            {
-                i++;
-                log.Info(string.Format("Starting inbound service #{0}...", i));
-                var inboundService = new InboundService(inbound.ListenUri, inbound.DestinationQueue);
-                inboundServices.Add(inboundService);
-                inboundService.Start();
-            }
+            log.Info("Starting inbound service...");
+            inboundService = new InboundService(ListenUri, DestinationQueue);
+            inboundService.Start();
         }
 
         public void Stop()
         {
-            int i = 0;
-            foreach (var inboundService in inboundServices)
+            if (inboundService != null)
             {
-                i++;
-                log.Info(string.Format("Stopping inbound service #{0}...", i));
+                log.Info("Stopping inbound service...");
                 inboundService.Stop();
             }
 
-            int j = 0;
-            foreach (var outboundService in outboundServices)
+            if (outboundService != null)
             {
-                j++;
-                log.Info(string.Format("Stopping outbound service #{0}...", j));
+                log.Info("Stopping outbound service...");
                 outboundService.Stop();
             }
         }
