@@ -99,6 +99,7 @@
     <Compile Include="INeedInitializationBeforeStart.cs" />
     <Compile Include="ITransactionContext.cs" />
     <Compile Include="Logging\GhettoFileLoggerFactory.cs" />
+    <Compile Include="Messages\UpdateConfiguration.cs" />
     <Compile Include="MultipleSagaHandlersException.cs" />
     <Compile Include="ObsoleteWarning.cs" />
     <Compile Include="Persistence\HybridSagaPersister.cs" />
